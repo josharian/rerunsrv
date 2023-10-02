@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -31,10 +32,23 @@ func Parse() ([]Command, error) {
 		// TODO: this is copied from the internet. test it.
 		candidates = append(candidates, u.HomeDir+"/.local/share/fish")
 	}
+	sessions, err := filepath.Glob(u.HomeDir + "/.zsh_sessions/*.history")
+	if err == nil {
+		candidates = append(candidates, sessions...)
+	}
+	var all []Command
+	var found bool
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {
-			return parseFile(candidate)
+			add, err := parseFile(candidate)
+			if err == nil {
+				all = append(all, add...)
+			}
+			found = true
 		}
+	}
+	if found {
+		return all, nil
 	}
 	return nil, fmt.Errorf("no history file found, tried: %v", candidates)
 }
